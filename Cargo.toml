@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/reaper-kev-ext",
-    "crates/reaper-ipc-test-client"
+    "crates/reaper-ipc-test-client",
+    "crates/reaper-audio-daemon"
 ]
 resolver = "2"
