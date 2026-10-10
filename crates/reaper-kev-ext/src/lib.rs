@@ -18,9 +18,7 @@ use ipc::{CommandPayload, CommandResponse};
 use windows::{
     core::PCWSTR,
     Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
-    Win32::Storage::FileSystem::{
-        ReadFile, WriteFile, PIPE_ACCESS_DUPLEX,
-    },
+    Win32::Storage::FileSystem::{ReadFile, WriteFile, PIPE_ACCESS_DUPLEX},
     Win32::System::Pipes::{
         ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_READMODE_BYTE,
         PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
@@ -39,14 +37,24 @@ extern "C" fn on_reaper_timer() {
                 if let Ok(session_guard) = REAPER_SESSION.lock() {
                     if let Some(ref session) = *session_guard {
                         let reaper = session.reaper();
-                        let desc = cmd.description.as_deref().unwrap_or("reaperKev voice command");
+                        let desc = cmd
+                            .description
+                            .as_deref()
+                            .unwrap_or("reaperKev voice command");
 
                         reaper.undo_begin_block_2(ProjectContext::CurrentProject);
                         let command_id = CommandId::new(cmd.action_id);
                         reaper.main_on_command_ex(command_id, 0, ProjectContext::CurrentProject);
-                        reaper.undo_end_block_2(ProjectContext::CurrentProject, desc, UndoScope::All);
+                        reaper.undo_end_block_2(
+                            ProjectContext::CurrentProject,
+                            desc,
+                            UndoScope::All,
+                        );
 
-                        let msg = format!("[reaperKev] Ejecutado Action ID {} ({})\n", cmd.action_id, desc);
+                        let msg = format!(
+                            "[reaperKev] Ejecutado Action ID {} ({})\n",
+                            cmd.action_id, desc
+                        );
                         reaper.show_console_msg(msg);
                     }
                 }
@@ -74,7 +82,9 @@ fn plugin_main(context: PluginContext) -> Result<(), Box<dyn Error>> {
     #[cfg(windows)]
     start_named_pipe_server(tx);
 
-    session.reaper().show_console_msg("[reaperKev] Servidor IPC iniciado en \\\\.\\pipe\\reaperkev_ipc\n");
+    session
+        .reaper()
+        .show_console_msg("[reaperKev] Servidor IPC iniciado en \\\\.\\pipe\\reaperkev_ipc\n");
 
     {
         let mut session_guard = REAPER_SESSION.lock().unwrap();
@@ -114,16 +124,12 @@ fn start_named_pipe_server(sender: Sender<CommandPayload>) {
                     let mut buffer = [0u8; 4096];
                     let mut bytes_read = 0u32;
 
-                    if ReadFile(
-                        handle,
-                        Some(&mut buffer),
-                        Some(&mut bytes_read),
-                        None,
-                    )
-                    .is_ok()
+                    if ReadFile(handle, Some(&mut buffer), Some(&mut bytes_read), None).is_ok()
                         && bytes_read > 0
                     {
-                        if let Ok(payload) = serde_json::from_slice::<CommandPayload>(&buffer[..bytes_read as usize]) {
+                        if let Ok(payload) =
+                            serde_json::from_slice::<CommandPayload>(&buffer[..bytes_read as usize])
+                        {
                             let _ = sender.send(payload);
 
                             let resp = CommandResponse {

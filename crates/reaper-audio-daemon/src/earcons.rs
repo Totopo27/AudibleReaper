@@ -1,10 +1,10 @@
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{SampleFormat, Stream};
 use crossbeam_channel::{unbounded, Sender};
 use std::f32::consts::PI;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{SampleFormat, Stream};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EarconType {
@@ -43,26 +43,28 @@ impl EarconPlayer {
             let idx_cb = Arc::clone(&sample_idx);
 
             let stream: Option<Stream> = match config.sample_format() {
-                SampleFormat::F32 => device.build_output_stream(
-                    &config.into(),
-                    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        let lock = samples_cb.lock().unwrap();
-                        let mut idx = idx_cb.load(Ordering::Relaxed);
+                SampleFormat::F32 => device
+                    .build_output_stream(
+                        &config.into(),
+                        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                            let lock = samples_cb.lock().unwrap();
+                            let mut idx = idx_cb.load(Ordering::Relaxed);
 
-                        for sample in data.iter_mut() {
-                            if idx < lock.len() {
-                                *sample = lock[idx];
-                                idx += 1;
-                            } else {
-                                *sample = 0.0;
+                            for sample in data.iter_mut() {
+                                if idx < lock.len() {
+                                    *sample = lock[idx];
+                                    idx += 1;
+                                } else {
+                                    *sample = 0.0;
+                                }
                             }
-                        }
 
-                        idx_cb.store(idx, Ordering::Relaxed);
-                    },
-                    |err| eprintln!("Error en stream de earcons: {}", err),
-                    None,
-                ).ok(),
+                            idx_cb.store(idx, Ordering::Relaxed);
+                        },
+                        |err| eprintln!("Error en stream de earcons: {}", err),
+                        None,
+                    )
+                    .ok(),
                 _ => None,
             };
 

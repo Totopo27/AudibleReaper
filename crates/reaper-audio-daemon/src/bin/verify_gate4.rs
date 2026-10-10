@@ -38,6 +38,9 @@ fn main() {
     let avg_lat = latencies_us.iter().sum::<u128>() / latencies_us.len() as u128;
     println!("--- Resultados Gate 4 ---");
     println!("Total de pruebas de catalogo superadas: {}", total_passed);
-    println!("Latencia promedio de resolucion: {} µs (0.{:03} ms)", avg_lat, avg_lat);
+    println!(
+        "Latencia promedio de resolucion: {} µs (0.{:03} ms)",
+        avg_lat, avg_lat
+    );
     println!("Compuerta Gate 4 SUPERADA: 100% de subsistemas verificados.");
 }

@@ -1,4 +1,4 @@
-use crate::catalog::{ACTION_CATALOG, Subsystem};
+use crate::catalog::{Subsystem, ACTION_CATALOG};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

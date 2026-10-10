@@ -29,18 +29,20 @@ impl AudioCapture {
             };
 
             let stream: Option<Stream> = match config.sample_format() {
-                SampleFormat::F32 => device.build_input_stream(
-                    &config.into(),
-                    move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                        if rec_clone.load(Ordering::Relaxed) {
-                            if let Ok(mut lock) = buf_clone.lock() {
-                                lock.extend_from_slice(data);
+                SampleFormat::F32 => device
+                    .build_input_stream(
+                        &config.into(),
+                        move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                            if rec_clone.load(Ordering::Relaxed) {
+                                if let Ok(mut lock) = buf_clone.lock() {
+                                    lock.extend_from_slice(data);
+                                }
                             }
-                        }
-                    },
-                    |err| eprintln!("Error en captura de audio WASAPI: {}", err),
-                    None,
-                ).ok(),
+                        },
+                        |err| eprintln!("Error en captura de audio WASAPI: {}", err),
+                        None,
+                    )
+                    .ok(),
                 _ => None,
             };
 

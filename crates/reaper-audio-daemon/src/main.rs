@@ -1,7 +1,7 @@
-pub mod earcons;
-pub mod ptt;
 pub mod capture;
+pub mod earcons;
 pub mod ipc_client;
+pub mod ptt;
 #[cfg(test)]
 mod tests;
 
@@ -74,7 +74,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         match IpcClient::send_command(&payload) {
                             Ok(resp) => {
-                                println!("[IPC] Ejecutado exitosamente en REAPER: {}", resp.message);
+                                println!(
+                                    "[IPC] Ejecutado exitosamente en REAPER: {}",
+                                    resp.message
+                                );
                                 earcons.play(EarconType::Success);
                             }
                             Err(e) => {
@@ -83,7 +86,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
                     } else {
-                        println!("[Kev Engine] Comando fuera de dominio / descartado de forma segura.");
+                        println!(
+                            "[Kev Engine] Comando fuera de dominio / descartado de forma segura."
+                        );
                         earcons.play(EarconType::Error);
                     }
                 }

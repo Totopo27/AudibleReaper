@@ -1,4 +1,4 @@
-use crate::catalog::{ACTION_CATALOG, Subsystem};
+use crate::catalog::{Subsystem, ACTION_CATALOG};
 use crate::generator::DatasetSample;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +21,10 @@ impl MockKevModel {
             let canon = action.canonical_es.to_lowercase();
             if is_phrase_match(&prompt_words, &canon) {
                 let len = canon.len();
-                if best_match.as_ref().map_or(true, |(_, _, best_len)| len > *best_len) {
+                if best_match
+                    .as_ref()
+                    .is_none_or(|(_, _, best_len)| len > *best_len)
+                {
                     best_match = Some((action.subsystem, action.action_id, len));
                 }
             }
@@ -30,7 +33,10 @@ impl MockKevModel {
                 let v = var.to_lowercase();
                 if is_phrase_match(&prompt_words, &v) {
                     let len = v.len();
-                    if best_match.as_ref().map_or(true, |(_, _, best_len)| len > *best_len) {
+                    if best_match
+                        .as_ref()
+                        .is_none_or(|(_, _, best_len)| len > *best_len)
+                    {
                         best_match = Some((action.subsystem, action.action_id, len));
                     }
                 }
@@ -60,7 +66,9 @@ fn is_phrase_match(prompt_words: &[&str], target_phrase: &str) -> bool {
         return false;
     }
 
-    prompt_words.windows(target_words.len()).any(|window| window == target_words.as_slice())
+    prompt_words
+        .windows(target_words.len())
+        .any(|window| window == target_words.as_slice())
 }
 
 pub struct Evaluator;

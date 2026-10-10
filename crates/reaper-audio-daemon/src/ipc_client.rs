@@ -19,9 +19,13 @@ pub struct IpcClient;
 
 impl IpcClient {
     #[cfg(windows)]
-    pub fn send_command(payload: &CommandPayload) -> Result<CommandResponse, Box<dyn std::error::Error>> {
+    pub fn send_command(
+        payload: &CommandPayload,
+    ) -> Result<CommandResponse, Box<dyn std::error::Error>> {
         use windows::core::PCWSTR;
-        use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE};
+        use windows::Win32::Foundation::{
+            CloseHandle, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE,
+        };
         use windows::Win32::Storage::FileSystem::{
             CreateFileW, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
         };
@@ -62,7 +66,9 @@ impl IpcClient {
     }
 
     #[cfg(not(windows))]
-    pub fn send_command(_payload: &CommandPayload) -> Result<CommandResponse, Box<dyn std::error::Error>> {
+    pub fn send_command(
+        _payload: &CommandPayload,
+    ) -> Result<CommandResponse, Box<dyn std::error::Error>> {
         Err("Named Pipes solo soportado en Windows".into())
     }
 }

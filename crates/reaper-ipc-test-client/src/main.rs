@@ -55,12 +55,8 @@ fn main() {
             if let Ok(handle) = handle {
                 if handle != INVALID_HANDLE_VALUE {
                     let mut bytes_written = 0u32;
-                    let write_res = WriteFile(
-                        handle,
-                        Some(&serialized),
-                        Some(&mut bytes_written),
-                        None,
-                    );
+                    let write_res =
+                        WriteFile(handle, Some(&serialized), Some(&mut bytes_written), None);
 
                     if write_res.is_ok() {
                         println!("Enviado payload de prueba: {:?}", payload);
@@ -68,7 +64,9 @@ fn main() {
                         let mut buf = [0u8; 4096];
                         let mut bytes_read = 0u32;
                         if ReadFile(handle, Some(&mut buf), Some(&mut bytes_read), None).is_ok() {
-                            if let Ok(resp) = serde_json::from_slice::<CommandResponse>(&buf[..bytes_read as usize]) {
+                            if let Ok(resp) = serde_json::from_slice::<CommandResponse>(
+                                &buf[..bytes_read as usize],
+                            ) {
                                 println!("Respuesta del servidor IPC: {:?}", resp);
                             }
                         }

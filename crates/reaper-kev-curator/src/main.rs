@@ -1,18 +1,21 @@
 pub mod catalog;
-pub mod generator;
 pub mod evaluator;
+pub mod generator;
 #[cfg(test)]
 mod tests;
 
-use std::error::Error;
 use evaluator::Evaluator;
 use generator::DatasetGenerator;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("=== [reaperKev] Kev Model Curator & Dataset Generator ===");
 
     let dataset = DatasetGenerator::generate_curated_dataset();
-    println!("Generadas {} muestras curadas para la matriz cerrada.", dataset.len());
+    println!(
+        "Generadas {} muestras curadas para la matriz cerrada.",
+        dataset.len()
+    );
 
     println!("Ejecutando evaluacion sobre el catalogo de transporte, pistas y opciones...");
     let report = Evaluator::evaluate(&dataset);

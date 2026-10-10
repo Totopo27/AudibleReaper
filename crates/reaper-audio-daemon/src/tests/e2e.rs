@@ -96,13 +96,22 @@ mod tests {
         }
 
         let avg_us: u128 = latencies.iter().sum::<u128>() / latencies.len() as u128;
-        println!("Latencia promedio E2E medida: {} µs (sub-milisegundo)", avg_us);
-        assert!(avg_us < 10_000, "Latencia promedio debe ser sub-10ms en IPC");
+        println!(
+            "Latencia promedio E2E medida: {} µs (sub-milisegundo)",
+            avg_us
+        );
+        assert!(
+            avg_us < 10_000,
+            "Latencia promedio debe ser sub-10ms en IPC"
+        );
     }
 
     #[test]
     fn test_e2e_unknown_rejection() {
         let (resp, _) = run_simulated_e2e_cycle("prepara una taza de cafe");
-        assert!(!resp.success, "Comando desconocido debe ser rechazado limpiamente");
+        assert!(
+            !resp.success,
+            "Comando desconocido debe ser rechazado limpiamente"
+        );
     }
 }
