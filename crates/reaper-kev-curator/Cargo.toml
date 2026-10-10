@@ -3,6 +3,14 @@ name = "reaper-kev-curator"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "reaper_kev_curator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "reaper-kev-curator"
+path = "src/main.rs"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

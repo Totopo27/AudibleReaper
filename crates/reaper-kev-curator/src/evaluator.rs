@@ -13,12 +13,13 @@ pub struct MockKevModel;
 impl MockKevModel {
     pub fn predict(prompt: &str) -> InferenceResult {
         let normalized = prompt.to_lowercase().trim().to_string();
+        let prompt_words: Vec<&str> = normalized.split_whitespace().collect();
 
         let mut best_match: Option<(Subsystem, u32, usize)> = None;
 
         for action in ACTION_CATALOG {
             let canon = action.canonical_es.to_lowercase();
-            if normalized.contains(&canon) {
+            if is_phrase_match(&prompt_words, &canon) {
                 let len = canon.len();
                 if best_match.as_ref().map_or(true, |(_, _, best_len)| len > *best_len) {
                     best_match = Some((action.subsystem, action.action_id, len));
@@ -27,7 +28,7 @@ impl MockKevModel {
 
             for var in action.variations {
                 let v = var.to_lowercase();
-                if normalized.contains(&v) {
+                if is_phrase_match(&prompt_words, &v) {
                     let len = v.len();
                     if best_match.as_ref().map_or(true, |(_, _, best_len)| len > *best_len) {
                         best_match = Some((action.subsystem, action.action_id, len));
@@ -50,6 +51,16 @@ impl MockKevModel {
             }
         }
     }
+}
+
+/// Verifica coincidencia de frase respetando los límites de palabras (evita que "prepara" matchee "para")
+fn is_phrase_match(prompt_words: &[&str], target_phrase: &str) -> bool {
+    let target_words: Vec<&str> = target_phrase.split_whitespace().collect();
+    if target_words.is_empty() || target_words.len() > prompt_words.len() {
+        return false;
+    }
+
+    prompt_words.windows(target_words.len()).any(|window| window == target_words.as_slice())
 }
 
 pub struct Evaluator;
