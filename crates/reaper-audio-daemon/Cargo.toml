@@ -3,6 +3,18 @@ name = "reaper-audio-daemon"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "reaper_audio_daemon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "reaper-audio-daemon"
+path = "src/main.rs"
+
+[[bin]]
+name = "verify_gate4"
+path = "src/bin/verify_gate4.rs"
+
 [dependencies]
 cpal = "0.15"
 midir = "0.10"
