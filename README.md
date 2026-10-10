@@ -1,112 +1,81 @@
 # AudibleReaper
 
-> **AudibleReaper** es un sistema de control por voz de ultra baja latencia y retroalimentación acústica diseñado específicamente para el DAW **REAPER**, con enfoque prioritario en accesibilidad para personas no videntes, usuarios de lectores de pantalla (**NVDA**, **JAWS**, **OSARA**) y flujos de trabajo manos libres en el estudio de grabación.
+Control por voz para REAPER pensado para operar sin mirar el monitor.
+
+Surgió de un problema concreto: cuando estás grabando una guitarra o tocando el teclado, soltar las manos para buscar el mouse o memorizar combinaciones de tres teclas rompe la sesión. En el caso de personas ciegas o con baja visión que usan REAPER a diario con lectores de pantalla (NVDA, JAWS) y la extensión OSARA, la interfaz es rápida con el teclado, pero ciertas tareas rutinarias se vuelven lentas o requieren demasiados pasos seguidos.
+
+AudibleReaper resuelve esto agregando un canal de voz directo y retroalimentación auditiva inmediata, sin pelearse con el lector de pantalla.
 
 ---
 
-## 🎧 Características Principales
+## Cómo encaja con OSARA y NVDA
 
-- **Latencia Sub-milisegundo (< 350 µs)**: Comunicación directa con REAPER a través de **Windows Named Pipes** (`\\.\pipe\reaperkev_ipc`).
-- **Thread-Safety Garantizado**: Despacho de comandos exclusivamente en el hilo principal de la GUI/Audio de REAPER mediante el hook oficial de temporizador de Cockos (`plugin_register_add_timer`), asegurando bloques Undo atómicos sin bloqueos ni corrupción de memoria.
-- **Push-to-Talk Dual (Teclado & MIDI)**: Activación configurable mediante atajo global de teclado (`Alt + V`) o controladores/pedales MIDI (`Sustain CC64`).
-- **Retroalimentación Acústica (Earcons)**: Generación procedural de barridos y tonos armónicos suaves con envelopes anti-clipping para confirmación táctil-auditiva sin depender de la pantalla y sin contaminar el bus de audio del DAW.
-- **Integración Simbiótica con OSARA & NVDA**: Diseñado para no competir con el lector de pantalla; AudibleReaper ejecuta las acciones oficiales y permite que OSARA verbalice el estado de forma nativa.
-- **Inferencia Determinista (99.93% de Precisión)**: Matriz cerrada de comandos basada en *word-boundary longest-match* que elimina falsos positivos y rechaza de forma segura frases fuera de catálogo.
+Un error común al armar herramientas asistivas es meter un sintetizador de voz que intente leer todo en voz alta. Si hacés eso dentro de REAPER, tu voz artificial empieza a hablar encima de NVDA y no entendés ni la música ni el lector.
 
----
-
-## 🏛️ Arquitectura del Sistema
-
-```
-+-------------------------------------------------------------------------------+
-|                       USUARIO (Persona no vidente / DAW Op)                  |
-+-------------------------------------------------------------------------------+
-      |                                              ^
-  Voz + PTT (Teclado / Pedal MIDI)               Earcons Acústicos (WASAPI Dedicado)
-      |                                              |
-      v                                              |
-+-------------------------------------------------------------------------------+
-|                             reaper-audio-daemon                               |
-|  - Windows API (Atajos PTT) & midir (Eventos MIDI)                            |
-|  - CPAL WASAPI: Captura micrófono PCM                                         |
-|  - Inferencia Determinista (reaper-kev-curator)                               |
-|  - WASAPI Output: Reproducción de Earcons de estado (< 15ms)                  |
-+-------------------------------------------------------------------------------+
-      | (Windows Named Pipe: \\.\pipe\reaperkev_ipc)  [Latencia < 1ms]
-      v
-+-------------------------------------------------------------------------------+
-|                             reaper-native-ext                                 |
-|  - DLL nativa de REAPER (reaper_kev.dll)                                      |
-|  - Servidor IPC Named Pipe no bloqueante                                      |
-|  - Despachador de acciones en el Main Thread de REAPER                        |
-|  - ReaScript C API (Undo_BeginBlock, Main_OnCommandEx, etc.)                  |
-+-------------------------------------------------------------------------------+
-      |
-      v
-+-------------------------------------------------------------------------------+
-|                            REAPER DAW ENGINE                                  |
-|  - Control de Pistas, Takes, Items, Transporte, Automatización, Loop          |
-|  - Compatibilidad transparente con OSARA y lectores de pantalla (NVDA/JAWS)   |
-+-------------------------------------------------------------------------------+
-```
+AudibleReaper toma el camino opuesto:
+1. **Acción directa**: Cuando decís *"armar para grabar"* o *"siguiente pista"*, la extensión dispara el Action ID nativo de Cockos o SWS directamente en el hilo principal de REAPER.
+2. **OSARA se encarga de hablar**: Como la acción ocurre de forma nativa en REAPER, OSARA la detecta por UIA/MSAA y le avisa a NVDA al instante (*"Pista 2: Guitarras, armada"*).
+3. **Earcons acústicos sutiles**: AudibleReaper solo emite tonos cortos y suaves para indicar el estado del micrófono (abierto, cerrado, comando ejecutado o error), a través de un canal de audio independiente para no contaminar tus tomas de grabación.
 
 ---
 
-## 📦 Estructura del Workspace (Rust)
+## Cómo funciona por dentro
 
-- **`crates/reaper-kev-ext`**: Extensión DLL nativa de REAPER (`reaper_kev.dll`) construida con `reaper-rs`.
-- **`crates/reaper-audio-daemon`**: Daemon en segundo plano encargado de la captura de audio WASAPI CPAL, hooks de PTT y Earcons.
-- **`crates/reaper-kev-curator`**: Catálogo canónico de comandos, generador de dataset (8.000+ muestras) y motor de resolución de intenciones.
-- **`crates/reaper-ipc-test-client`**: Herramienta CLI de diagnóstico para verificar el canal IPC de REAPER.
+La herramienta se divide en dos componentes comunicados por un Named Pipe local en Windows (`\\.\pipe\reaperkev_ipc`):
+
+- **`reaper_kev.dll` (Extensión C++/Rust)**: Se carga en la carpeta `UserPlugins` de REAPER. Escucha comandos en segundo plano y los despacha al motor de REAPER usando el hook de temporizador oficial (`plugin_register_add_timer`). Esto asegura que cada acción corra en el hilo principal de la interfaz y quede guardada en el historial de Deshacer (Undo).
+- **`reaper-audio-daemon.exe` (Servicio en segundo plano)**: Monitorea el micrófono con WASAPI (vía CPAL) únicamente mientras mantenés presionado el atajo de Push-to-Talk (por defecto `Alt + V` o el pedal de Sustain MIDI `CC64`). Al soltarlo, procesa la frase, resuelve la acción y envía la orden por el pipe. Todo el ciclo toma menos de 1 milisegundo.
 
 ---
 
-## 🚀 Instalación Rápida (1-Clic)
+## Instalación rápida (Windows)
 
-1. Clona el repositorio:
+1. Tené REAPER instalado en tu máquina.
+2. Cloná el repositorio:
    ```bash
    git clone https://github.com/Totopo27/AudibleReaper.git
    cd AudibleReaper
    ```
-2. Ejecuta el instalador automatizado en Windows:
+3. Ejecutá el instalador por lotes:
    ```cmd
    instalar_reaperkev.bat
    ```
-   *El script compilará el workspace y copiará automáticamente `reaper_kev.dll` a tu carpeta `%APPDATA%\REAPER\UserPlugins\`.*
-3. Abre **REAPER** y lanza `reaper-audio-daemon.exe`.
+   El script compila el código, detecta tu carpeta `%APPDATA%\REAPER\UserPlugins\` y copia la DLL en su lugar.
+4. Abrí REAPER.
+5. Iniciá `reaper-audio-daemon.exe` (el instalador te pregunta si querés abrirlo de una vez).
 
 ---
 
-## 📋 Catálogo de Acciones Soportadas
+## Comandos cotidianos que podés probar
 
-| Subsistema | Ejemplos de Frases en Lenguaje Natural | Action ID Oficial |
-| :--- | :--- | :--- |
-| **Transporte** | *"play"*, *"detener"*, *"grabar"*, *"ir al inicio"*, *"repetir bucle"* | `1007`, `1016`, `1013`, `40042`, `1068` |
-| **Pistas** | *"armar para grabar"*, *"mutear pistas"*, *"solear pistas"*, *"insertar pista"* | `9`, `6`, `7`, `40001` |
-| **Navegación** | *"siguiente pista"*, *"pista anterior"*, *"avanzar un compás"*, *"retroceder un compás"* | `40285`, `40286`, `40104`, `40105` |
-| **Edición e Items** | *"cortar item"*, *"duplicar item"*, *"normalizar item"*, *"eliminar item"* | `40012`, `40184`, `40108`, `40006` |
-| **Takes** | *"siguiente toma"*, *"toma anterior"*, *"conservar toma activa"* | `40125`, `40126`, `40131` |
-| **Selección & Loop** | *"marcar inicio de selección"*, *"marcar final de selección"*, *"quitar selección"* | `40625`, `40626`, `40020` |
-| **Marcadores** | *"insertar marcador"*, *"marcador anterior"*, *"marcador siguiente"* | `40157`, `40172`, `40173` |
-| **Opciones** | *"alternar metrónomo"*, *"quitar todos los solos"*, *"desmutear todo"* | `40364`, `40340`, `40339` |
+El modelo trabaja con una matriz cerrada para evitar que interprete cualquier ruido como una orden. Podés hablarle en español rioplatense o neutro:
+
+- **Transporte**: *"dale play"*, *"detener"*, *"grabá"*, *"ir al inicio"*, *"repetir bucle"*.
+- **Pistas**: *"armar para grabar"*, *"muteá la pista"*, *"soleá este canal"*, *"insertar pista nueva"*, *"siguiente pista"*, *"pista anterior"*, *"quitar todos los solos"*.
+- **Edición y cortes**: *"cortar item"* (hace split en el cursor), *"duplicar item"*, *"normalizar a cero dB"*, *"borrar este audio"*.
+- **Tomas**: *"siguiente toma"*, *"toma anterior"*, *"dejar solo esta toma"* (crop to active take).
+- **Compases y tiempo**: *"avanzar un compás"*, *"retroceder un compás"*, *"marcar inicio de selección"*, *"marcar final de selección"*, *"limpiar selección"*.
+- **Marcadores**: *"insertar marcador acá"*, *"marcador siguiente"*, *"marcador anterior"*.
+- **Metrónomo**: *"prender el metrónomo"*, *"apagar el click"*.
+
+Si decís algo que no tiene nada que ver con REAPER (*"haceme un café"*), el sistema emite un tono grave de descarte y no toca nada en tu proyecto.
 
 ---
 
-## 🧪 Verificación y Tests
+## Verificación y pruebas
 
-Para ejecutar la suite completa de pruebas unitarias y de integración E2E:
+Si querés auditar el código o correr las pruebas del workspace:
 
 ```bash
+# Compilar y correr pruebas unitarias e integración IPC
 cargo test --workspace
-```
 
-Para verificar la compuerta Gate 4 del catálogo completo:
-```bash
+# Ejecutar la verificación completa de catálogo (70 pruebas con medición de latencia)
 cargo run -p reaper-audio-daemon --bin verify_gate4
 ```
 
 ---
 
-## 📄 Licencia
+## Licencia
 
-Este proyecto está disponible bajo la licencia MIT.
+Código publicado bajo licencia MIT. Las contribuciones, mejoras en diccionarios de voz y adaptaciones para controladores MIDI son bienvenidas.
