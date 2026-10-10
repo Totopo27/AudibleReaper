@@ -20,6 +20,12 @@
 - **OSARA (Open Source Accessibility for the REAPER Application)**: [https://github.com/jcsteh/osara](https://github.com/jcsteh/osara)
   - Estándar de accesibilidad de código abierto para personas ciegas en REAPER, integrando NVDA, JAWS y VoiceOver.
   - Documentación de cómo interactúa el cursor de edición y navegación de tracks sin mouse.
+- **The Reaper Accessibility Wiki**: [https://www.reaperaccessibility.com/wiki/Main_Page](https://www.reaperaccessibility.com/wiki/Main_Page)
+  - La enciclopedia oficial mantenida por la comunidad global de usuarios ciegos de REAPER.
+  - **Reaper shortcut key list by headings**: [https://www.reaperaccessibility.com/wiki/Reaper_shortcut_key_list_by_headings](https://www.reaperaccessibility.com/wiki/Reaper_shortcut_key_list_by_headings)
+    - Mapeo canónico exhaustivo de atajos de OSARA + SWS organizados por categorías: Transporte, Pistas, Takes, Envelopes/Automatización, Selección de tiempo, Marcadores/Regiones, MIDI Editor y Peak Watcher.
+    - Este catálogo constituye la base directa para la taxonomía de intenciones del modelo Kev.
+  - **Reaper and Osara Cookbook**: Casos de uso de producción real y resolución de flujos de trabajo sin pantalla.
 - **SWS / S&M Extension**: [https://www.sws-extension.org/](https://www.sws-extension.org/)
   - Repositorio: [https://github.com/reaper-oss/sws](https://github.com/reaper-oss/sws)
   - Extensión comunitaria en C++ de referencia para arquitectura de plugins avanzados en REAPER.

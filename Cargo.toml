@@ -2,6 +2,7 @@
 members = [
     "crates/reaper-kev-ext",
     "crates/reaper-ipc-test-client",
-    "crates/reaper-audio-daemon"
+    "crates/reaper-audio-daemon",
+    "crates/reaper-kev-curator"
 ]
 resolver = "2"
